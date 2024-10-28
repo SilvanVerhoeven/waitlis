@@ -1,0 +1,32 @@
+.queue .ant-card-body {
+  padding: 10px 0 !important;
+}
+
+.queue .ant-card-body .ant-list-items {
+  padding-right: 10px !important;
+  padding-left: 10px !important;
+}
+
+.queue .ant-list-item:hover button {
+  display: inline;
+}
+
+.queue .ant-list-item button {
+  display: none;
+}
+
+.queue .ant-list-item button {
+  display: none;
+}
+
+.ant-card-actions li {
+  margin: 12px !important;
+}
+
+.btn-custom-large .ant-btn-loading-icon {
+  font-size: 1.35em;
+}
+
+.control-panel .ant-divider {
+  margin-top: 0 !important;
+}

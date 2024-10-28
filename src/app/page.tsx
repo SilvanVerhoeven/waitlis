@@ -1,97 +1,41 @@
-import Image from "next/image";
-import styles from "./page.module.css";
-import { Button } from 'antd';
+import QueueSelector from '@/components/QueueSelector';
+import { Col, Layout, Row } from 'antd';
+import { GET as getPhasePosition } from './api/member/[memberId]/route';
+import { GET as getCurrentRegistration } from './api/registration/route';
+import { GET as getPhases } from './api/phase/route';
+import { prisma } from './layout';
+import PollPage from '@/components/PollPage';
+import MemberStatus from '@/components/MemberStatus';
+import { Content } from 'antd/es/layout/layout';
 
-export default function Home() {
+export default async function MemberPage() {
+  const queues = await prisma.queue.findMany({ include: { registrations: { include: { phase: true } } } })
+  let position = await getPhasePosition()
+  const openPhases = await getPhases()
+  const currentRegistration = await getCurrentRegistration()
+
+  if (!position && currentRegistration) {
+    position = { position: -1, registration: currentRegistration }
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-        <Button type="primary">Button</Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    <Layout style={{ padding: 0, height: "100vh" }}>
+      <Content style={{ margin: '24px 16px 0', overflow: 'initial', display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <PollPage interval={10000} />
+        {position === undefined ?
+          <Row justify="center">
+            <Col>
+              <QueueSelector queues={queues} open={openPhases.length > 0} />
+            </Col>
+          </Row>
+          :
+          <Row justify="center">
+            <Col>
+              <MemberStatus position={position} />
+            </Col>
+          </Row>
+        }
+      </Content>
+    </Layout>
   );
 }

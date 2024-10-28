@@ -1,0 +1,12 @@
+services:
+  db:
+    image: "postgres"
+    env_file:
+      - path: ./.env
+        required: true # default
+      - path: ./.env.development
+        required: false
+      - path: ./.env.production
+        required: false
+    ports:
+      - "4010:5432"

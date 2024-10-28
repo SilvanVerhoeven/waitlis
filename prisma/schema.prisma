@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+enum PhaseStatus {
+  OPEN
+  CLOSED
+}
+
+enum RegistrationStatus {
+  ACTIVE
+  NEXT
+  QUEUED
+  HANDLED
+  SKIPPED
+  WITHDRAWN
+}
+
+model Member {
+  id                 String         @id @default(dbgenerated("nanoid(12)")) @db.VarChar(12)
+  createdAt          DateTime       @default(now())
+  lastRegistrationAt DateTime       @updatedAt
+  registrations      Registration[]
+}
+
+model Queue {
+  id            Int            @id @default(autoincrement())
+  name          String
+  createdAt     DateTime       @default(now())
+  registrations Registration[]
+}
+
+model Registration {
+  id           Int                @id @default(autoincrement())
+  status       RegistrationStatus
+  firstInPhase Boolean
+  member       Member             @relation(fields: [memberId], references: [id])
+  queue        Queue              @relation(fields: [queueId], references: [id])
+  phase        Phase              @relation(fields: [phaseId], references: [id])
+  createdAt    DateTime           @default(now())
+  queueId      Int
+  phaseId      Int
+  memberId     String             @db.VarChar(12)
+}
+
+model Phase {
+  id            Int            @id @default(autoincrement())
+  name          String?
+  status        PhaseStatus
+  registrations Registration[]
+  previous      Phase?         @relation("PhaseHistory", fields: [previousId], references: [id])
+  createdAt     DateTime       @default(now())
+  previousId    Int?           @unique
+  next          Phase?         @relation("PhaseHistory")
+}

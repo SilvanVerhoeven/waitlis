@@ -6,10 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "load:env": "dotenv -e .env.development -e .env",
+    "migrate": "npm run load:env -- npx prisma migrate dev",
+    "reset:purge": "npm run load:env -- npx prisma db push --force-reset"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.0.1",
+    "@prisma/client": "^5.21.1",
     "antd": "^5.21.5",
     "next": "^14.2.16",
     "react": "^18.3.1",
@@ -21,6 +25,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "15.0.1",
+    "prisma": "^5.21.1",
     "typescript": "^5"
   }
 }
