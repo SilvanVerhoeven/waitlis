@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "load:env": "dotenv -e .env.development -e .env",
+    "load:env": "dotenv -e .env.development -e .env.production -e .env",
     "migrate": "npm run load:env -- npx prisma migrate dev",
     "migrate:deploy": "npm run load:env -- npx prisma migrate deploy",
     "reset:purge": "npm run load:env -- npx prisma db push --force-reset"
@@ -24,7 +24,6 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "dotenv": "^16.4.5",
     "eslint": "^8",
     "eslint-config-next": "15.0.1",
     "prisma": "^5.21.1",
