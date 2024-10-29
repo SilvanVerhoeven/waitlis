@@ -14,10 +14,14 @@ import { QueueWithRegistrations } from '../api/queue/route';
 import CallNextButton from '@/components/CallNextButton';
 import PollPage from '@/components/PollPage';
 import { ErrorResponse, isErrorResponse } from '../lib/types';
-
-export const dynamic = "force-dynamic"
+import { cookies } from 'next/headers';
 
 export default async function ManageView() {
+  const cookieStore = await cookies()
+  if (cookieStore.get("secret")?.value !== process.env.SERVER_SECRET) return (
+    <>403 - Unauthorized</>
+  )
+
   const registrations: Registration[] = await (await fetch(`${process.env.SERVER_URL}/api/phase/call`, { next: { tags: ['phases', 'order'] } })).json()
   const phase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
   const queues: QueueWithRegistrations[] = await (await fetch(`${process.env.SERVER_URL}/api/queue/all`, { next: { tags: ['queues', 'phases', 'order'] } })).json()
