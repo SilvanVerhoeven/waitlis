@@ -1,19 +1,19 @@
 import { Queue, Registration, RegistrationStatus } from "@prisma/client"
-import { GET as getQueues, QueueWithRegistrations, RegistrationWithMember } from '@/app/api/queue/route'
-
-export const closedRegistrationStatus: RegistrationStatus[] = [RegistrationStatus.HANDLED, RegistrationStatus.SKIPPED, RegistrationStatus.WITHDRAWN]
+import { QueueWithRegistrations, QueueWithRegistrationsAndMembers, RegistrationWithMember } from '@/app/api/queue/route'
+import { closedRegistrationStatus } from "@/app/lib/registration"
+import { NextRequest } from "next/server"
 
 const isOpen = (registration: Registration) => !closedRegistrationStatus.includes(registration.status)
 
-export const byQueueOrder = (a: QueueWithRegistrations, b: QueueWithRegistrations) => {
+const byQueueOrder = (a: QueueWithRegistrations, b: QueueWithRegistrations) => {
   if (a.registrations.length == 0) return 1
   if (b.registrations.length == 0) return -1
   if (!!a.registrations.find(registration => registration.status === RegistrationStatus.ACTIVE)) return -1
   if (!!b.registrations.find(registration => registration.status === RegistrationStatus.ACTIVE)) return 1
-  return a.registrations[0].createdAt.getTime() - b.registrations[0].createdAt.getTime()
+  return (new Date(a.registrations[0].createdAt)).getTime() - (new Date(b.registrations[0].createdAt)).getTime()
 }
 
-export const byRegistrationOrder = (respectNext: boolean) => (a: RegistrationWithMember, b: RegistrationWithMember) => {
+const byRegistrationOrder = (respectNext: boolean) => (a: RegistrationWithMember, b: RegistrationWithMember) => {
   if (a.status === RegistrationStatus.ACTIVE) return -1
   if (b.status === RegistrationStatus.ACTIVE) return 1
   if (respectNext && a.status === RegistrationStatus.NEXT) return -1
@@ -22,14 +22,18 @@ export const byRegistrationOrder = (respectNext: boolean) => (a: RegistrationWit
     if (a.firstInPhase) return -1
     if (b.firstInPhase) return 1
   }
-  return a.createdAt.getTime() - b.createdAt.getTime()
+  return (new Date(a.createdAt)).getTime() - (new Date(b.createdAt)).getTime()
 }
 
 /**
  * Returns all unhandled registrations for the current phase in their global call order
  */
-export async function GET({ respectNext = true, limit }: { respectNext?: boolean, limit?: number }): Promise<Registration[]> {
-  const queues = await getQueues()
+export async function GET(request: NextRequest): Promise<Response> {
+  const searchParams = request.nextUrl.searchParams
+  const respectNext = Boolean(searchParams.get('respectNext') ?? true)
+  const limit = searchParams.get('limit') === null ? undefined : Number(searchParams.get('limit'))
+
+  const queues: QueueWithRegistrationsAndMembers[] = await (await fetch(`${process.env.SERVER_URL}/api/queue`, { next: { tags: ['queues', 'phases', 'order'] } })).json()
   queues.forEach(queue => queue.registrations = queue.registrations.filter(isOpen).sort(byRegistrationOrder(respectNext)))
 
   queues.sort(byQueueOrder)
@@ -50,5 +54,5 @@ export async function GET({ respectNext = true, limit }: { respectNext?: boolean
     }
   }
 
-  return globalCallOrder.slice(0, limit)
+  return Response.json(globalCallOrder.slice(0, limit))
 }

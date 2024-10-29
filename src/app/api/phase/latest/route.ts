@@ -1,5 +1,5 @@
-import { prisma } from "@/app/layout"
+import { prisma } from "@/app/lib/db";
 
 export async function GET() {
-  return await prisma.phase.findFirst({ orderBy: { createdAt: "desc" } })
+  return Response.json((await prisma.phase.findFirst({ orderBy: { createdAt: "desc" } })) ?? { error: "No phase" })
 }

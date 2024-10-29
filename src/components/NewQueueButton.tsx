@@ -15,8 +15,8 @@ export default function CallNextButton() {
   const handleQueueCreation = async () => {
     setIsCreating(true)
     await createQueue()
-    setIsCreating(false)
     router.refresh()
+    setIsCreating(false)
   }
 
   return (

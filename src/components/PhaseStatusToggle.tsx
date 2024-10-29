@@ -15,8 +15,8 @@ export default function PhaseStatusToggle({ status, disabled }: { disabled: bool
   const handleToggle = async () => {
     setIsToggling(true)
     await togglePhaseStatus()
-    setIsToggling(false)
     router.refresh()
+    setIsToggling(false)
   }
 
   return (

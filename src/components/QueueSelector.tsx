@@ -7,8 +7,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function QueueSelector({ queues, open }: { queues: Queue[], open: boolean }) {
-  const [selectedQueue, setSelectedQueue] = useState<Queue>()
+  const [isLoading, setIsLoading] = useState(false)
+  const [selectedQueue, setSelectedQueue] = useState<Queue | undefined>()
   const router = useRouter()
+
+  const handleSubmit = async () => {
+    if (!selectedQueue) return
+    setIsLoading(true)
+    await enqueue(selectedQueue)
+    router.refresh()
+    setIsLoading(false)
+  }
 
   return (
     <Card
@@ -21,10 +30,8 @@ export default function QueueSelector({ queues, open }: { queues: Queue[], open:
               disabled={selectedQueue === undefined || !open}
               block
               size="large"
-              onClick={() => {
-                if (!selectedQueue) return
-                enqueue(selectedQueue).then(() => router.refresh())
-              }}
+              loading={isLoading}
+              onClick={handleSubmit}
             >
               {open ? 'Redebeitrag anmelden' : 'Redelisten sind geschlossen'}
             </Button>

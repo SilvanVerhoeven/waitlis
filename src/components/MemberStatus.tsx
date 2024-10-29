@@ -1,7 +1,7 @@
 "use client"
 
 import { Button, Card, Col, Row } from "antd"
-import { AudioOutlined, CheckCircleOutlined, FastForwardOutlined, HourglassOutlined, MessageOutlined, UndoOutlined } from '@ant-design/icons';
+import { AudioOutlined, CheckCircleOutlined, FastForwardOutlined, HourglassOutlined, MessageOutlined, StopOutlined, UndoOutlined } from '@ant-design/icons';
 import "../app/global.css"
 import { PhasePosition } from "@/app/api/member/[memberId]/route";
 import Text from 'antd/es/typography/Text';
@@ -25,21 +25,22 @@ export default function MemberStatus({ position }: { position: PhasePosition }) 
   const handleDeque = async () => {
     setIsLoading(true)
     await dequeue()
-    setIsLoading(false)
     router.refresh()
+    setIsLoading(false)
   }
 
   const handleHome = async () => {
     setIsLoading(true)
     await goHome()
-    setIsLoading(false)
     router.refresh()
+    setIsLoading(false)
   }
 
 
   const actions = {
     cancel: <Button key="cancel" variant="text" color="danger" loading={isLoading} onClick={handleDeque}>Redebeitrag zurückziehen</Button>,
-    home: <Button key="home" variant="solid" size="large" block color="primary" loading={isLoading} onClick={handleHome}>Erneut melden</Button>
+    home: <Button key="home" variant="solid" size="large" block color="primary" loading={isLoading} onClick={handleHome}>Erneut melden</Button>,
+    start: <Button key="home" variant="solid" size="large" block color="primary" loading={isLoading} onClick={handleHome}>Zurück zum Start</Button>,
   }
 
   const states: Record<RegistrationStatus, DisplayState> = {
@@ -49,6 +50,7 @@ export default function MemberStatus({ position }: { position: PhasePosition }) 
     HANDLED: { icon: <CheckCircleOutlined />, title: "Geschafft!", description: "Du kannst dich nun erneut für einen Redebeitrag melden.", action: actions.home },
     SKIPPED: { icon: <FastForwardOutlined />, title: "Du wurdest übersprungen", description: "Bitte melde dich beim Vorsitz, wenn es sich hierbei um einen Fehler handelt.", action: actions.home },
     WITHDRAWN: { icon: <UndoOutlined />, title: "Beitrag zurückgezogen", description: "Du kannst dich jederzeit für einen neuen Redebeitrag melden.", action: actions.home },
+    DECLINED: { icon: <StopOutlined />, title: "Beratung geschlossen", description: "Der Tagesordnungspunkt wurde geschlossen. Du kannst dich für den nächsten wieder melden.", action: actions.start },
   }
 
   const state = states[position.registration.status]

@@ -21,6 +21,7 @@ enum RegistrationStatus {
   QUEUED
   HANDLED
   SKIPPED
+  DECLINED
   WITHDRAWN
 }
 

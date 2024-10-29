@@ -1,12 +1,16 @@
-import { prisma } from "@/app/layout"
-import { PhaseStatus } from "@prisma/client"
-import { GET as getLatestPhase } from "@/app/api/phase/latest/route"
+import { prisma } from "@/app/lib/db"
+import { ErrorResponse, isErrorResponse } from "@/app/lib/types"
+import { Phase, PhaseStatus } from "@prisma/client"
+import { revalidateTag } from "next/cache"
 
 export async function GET() {
-  return await prisma.phase.findMany({ where: { status: PhaseStatus.OPEN } })
+  return Response.json(await prisma.phase.findMany({ where: { status: PhaseStatus.OPEN } }))
 }
 
 export async function POST() {
-  const latestPhase = await getLatestPhase()
-  await prisma.phase.create({ data: { status: PhaseStatus.OPEN, previousId: latestPhase?.id } })
+  const latestPhase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
+  if (isErrorResponse(latestPhase)) return Response.json(latestPhase)
+  const newPhase = await prisma.phase.create({ data: { status: PhaseStatus.OPEN, previousId: latestPhase?.id } })
+  revalidateTag('phases')
+  return Response.json(newPhase)
 }

@@ -25,8 +25,8 @@ const Queue = ({ queue, actions, defaultMode = "view" }: { defaultMode?: Mode, q
   const handleSetAsNext = async (registration: Registration) => {
     setIsCallingNext(registration.id)
     await setAsNext(registration)
-    setIsCallingNext(undefined)
     router.refresh()
+    setIsCallingNext(undefined)
   }
 
   return (

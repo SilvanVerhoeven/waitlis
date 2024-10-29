@@ -9,4 +9,4 @@ services:
       - path: ./.env.production
         required: false
     ports:
-      - "4010:5432"
+      - 127.0.0.1:4010:5432

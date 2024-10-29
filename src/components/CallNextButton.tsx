@@ -15,8 +15,8 @@ export default function CallNextButton({ disabled = false }: { disabled: boolean
   const handleCallNext = async () => {
     setIsCallingNext(true)
     await callNext()
-    setIsCallingNext(false)
     router.refresh()
+    setIsCallingNext(false)
   }
 
   return (

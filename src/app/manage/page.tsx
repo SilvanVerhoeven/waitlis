@@ -8,18 +8,17 @@ import PhaseStatusToggle from '@/components/PhaseStatusToggle';
 import { FastBackwardOutlined } from '@ant-design/icons';
 import Text from 'antd/es/typography/Text';
 import PhaseStatusIndicator from '@/components/PhaseStatusIndicator';
-import { GET as getLatestPhase } from "@/app/api/phase/latest/route";
-import { GET as getGlobalCallOrder } from "@/app/api/phase/call/route";
-import { PhaseStatus } from '@prisma/client';
+import { Phase, PhaseStatus, Registration } from '@prisma/client';
 import NextPhaseButton from '@/components/NextPhaseButton';
-import { prisma } from '../layout';
 import { QueueWithRegistrations } from '../api/queue/route';
 import CallNextButton from '@/components/CallNextButton';
 import PollPage from '@/components/PollPage';
+import { prisma } from '../lib/db';
+import { ErrorResponse, isErrorResponse } from '../lib/types';
 
 export default async function ManageView() {
-  const registrations = await getGlobalCallOrder({})
-  const phase = await getLatestPhase()
+  const registrations: Registration[] = await (await fetch(`${process.env.SERVER_URL}/api/phase/call`, { next: { tags: ['phases', 'order'] } })).json()
+  const phase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
   const queues: QueueWithRegistrations[] = (await prisma.queue.findMany())
     .map(queue => {
       return {
@@ -30,7 +29,7 @@ export default async function ManageView() {
 
   return (
     <Layout style={{ padding: 0, height: "100vh" }}>
-      <PollPage interval={10000} />
+      <PollPage interval={Number(process.env.POLLING_INTERVAL_MANAGE)} />
       <Layout>
         <Content style={{ margin: '24px 16px 0' }}>
           <Row justify="center">
@@ -72,7 +71,7 @@ export default async function ManageView() {
             </Divider>
             <Row gutter={10}>
               <Col><NewQueueButton /></Col>
-              <Col><PhaseStatusToggle disabled={!phase} status={phase?.status ?? PhaseStatus.CLOSED} /></Col>
+              <Col><PhaseStatusToggle disabled={isErrorResponse(phase)} status={isErrorResponse(phase) ? PhaseStatus.CLOSED : phase.status} /></Col>
               <Col>
                 <CallNextButton disabled={registrations.length === 0} />
               </Col>

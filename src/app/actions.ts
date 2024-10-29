@@ -1,32 +1,37 @@
 "use server"
 
 import { cookies } from 'next/headers'
-import { PhaseStatus, Queue, Registration, RegistrationStatus } from "@prisma/client"
-import { POST as newQueue } from "./api/queue/route"
-import { POST as createPhase } from "./api/phase/route"
-import { GET as getLatestPhase } from "./api/phase/latest/route"
-import { prisma } from './layout'
-import { closedRegistrationStatus, GET as getGlobalCallOrder } from './api/phase/call/route'
+import { Phase, PhaseStatus, Queue, Registration, RegistrationStatus } from "@prisma/client"
+import { closedRegistrationStatus } from './lib/registration'
+import { prisma } from './lib/db'
+import { ErrorResponse, isErrorResponse } from './lib/types'
+import { revalidateTag } from 'next/cache'
 
 export const renameQueue = async (queue: Queue, newName: string) => {
-  return await prisma.queue.update({
+  await prisma.queue.update({
     where: { id: queue.id },
     data: { name: newName }
   })
+  revalidateTag('queues')
 }
 
 export const createQueue = async () => {
-  return (await newQueue()).json()
+  return await (await fetch(`${process.env.SERVER_URL}/api/queue`, { method: "POST" })).json()
 }
 
 export const nextPhase = async () => {
+  const phase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
+  if (!isErrorResponse(phase)) {
+    await prisma.registration.updateMany({ where: { phaseId: phase.id, status: { notIn: closedRegistrationStatus } }, data: { status: RegistrationStatus.DECLINED } })
+    revalidateTag('order')
+  }
   await setPhaseStatus(PhaseStatus.CLOSED)
-  return await createPhase()
+  return await (await fetch(`${process.env.SERVER_URL}/api/phase`, { method: "POST" })).json()
 }
 
 export const setPhaseStatus = async (status: PhaseStatus) => {
-  const phase = await getLatestPhase()
-  if (!phase) return { error: "No phase available. Create a phase first" }
+  const phase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
+  if (isErrorResponse(phase)) return { error: "No phase available. Create a phase first" }
   await prisma.phase.update({
     where: { id: phase.id },
     data: { status }
@@ -34,12 +39,13 @@ export const setPhaseStatus = async (status: PhaseStatus) => {
 }
 
 export const togglePhaseStatus = async () => {
-  const phase = await getLatestPhase()
-  if (!phase) return { error: "No phase available. Create a phase first" }
+  const phase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
+  if (isErrorResponse(phase)) return { error: "No phase available. Create a phase first" }
   await prisma.phase.update({
     where: { id: phase.id },
     data: { status: phase.status === PhaseStatus.CLOSED ? PhaseStatus.OPEN : PhaseStatus.CLOSED }
   })
+  revalidateTag('phases')
 }
 
 export const callNext = async () => {
@@ -48,7 +54,9 @@ export const callNext = async () => {
     data: { status: RegistrationStatus.HANDLED }
   })
 
-  const order = await getGlobalCallOrder({})
+  revalidateTag('order')
+
+  const order: Registration[] = await (await fetch(`${process.env.SERVER_URL}/api/phase/call`, { next: { tags: ['order', 'phases'] } })).json()
 
   if (order[0]) {
     await prisma.registration.update({
@@ -63,6 +71,8 @@ export const callNext = async () => {
       data: { status: RegistrationStatus.NEXT }
     })
   }
+
+  revalidateTag('order')
 }
 
 export const setAsNext = async (registration: Registration) => {
@@ -75,6 +85,8 @@ export const setAsNext = async (registration: Registration) => {
     where: { id: registration.id },
     data: { status: RegistrationStatus.NEXT }
   })
+
+  revalidateTag('order')
 }
 
 export const enqueue = async (queue: Queue) => {
@@ -88,9 +100,9 @@ export const enqueue = async (queue: Queue) => {
     update: {} // updates lastRegistrationAt automatically 
   }))
 
-  const latestPhase = await getLatestPhase()
+  const latestPhase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
 
-  if (!latestPhase || latestPhase.status !== PhaseStatus.OPEN) return { error: "Queues not open for registration" }
+  if (isErrorResponse(latestPhase) || latestPhase.status !== PhaseStatus.OPEN) return { error: "Queues not open for registration" }
 
   const openRegistrations = await prisma.registration.count({
     where: {
@@ -119,10 +131,13 @@ export const enqueue = async (queue: Queue) => {
     }
   })
 
+  revalidateTag('order')
+
   cookieStore.set("memberId", member.id)
   cookieStore.set("registrationId", String(registration.id))
+  revalidateTag('registration')
 
-  const order = await getGlobalCallOrder({ respectNext: false, limit: 3 })
+  const order: Registration[] = await (await fetch(`${process.env.SERVER_URL}/api/phase/call?respectNext=false&limit=3`, { next: { tags: ['phases', 'order'] } })).json()
   const nextStatus = order.length <= 1 ? RegistrationStatus.ACTIVE : (order[1].id == registration.id ? RegistrationStatus.NEXT : RegistrationStatus.QUEUED)
 
   if (nextStatus === RegistrationStatus.NEXT) {
@@ -134,35 +149,30 @@ export const enqueue = async (queue: Queue) => {
     })
   }
 
+  revalidateTag('order')
+
   return registration
 }
 
 export const dequeue = async () => {
   const cookieStore = await cookies()
+  const clientRegistrationId = cookieStore.get("registrationId")?.value
 
-  const clientMemberId = cookieStore.get("memberId")?.value
-
-  const member = (await prisma.member.findUnique({
-    where: { id: clientMemberId ?? '' }
-  }))
-
-  if (!member) return
-
-  const latestPhase = await getLatestPhase()
-
-  if (!latestPhase || latestPhase.status !== PhaseStatus.OPEN) return { error: "No open queue found" }
+  if (!clientRegistrationId) return { error: "Registration not found" }
 
   await prisma.registration.updateMany({
     where: {
-      memberId: member.id,
-      phaseId: latestPhase.id,
+      id: Number(clientRegistrationId),
       status: { notIn: closedRegistrationStatus }
     },
     data: { status: RegistrationStatus.WITHDRAWN }
   })
+
+  revalidateTag('order')
 }
 
 export const goHome = async () => {
   const cookieStore = await cookies()
   cookieStore.delete("registrationId")
+  revalidateTag('registration')
 }
