@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "load:env": "dotenv -e .env -e .env.development -e .env.production",
+    "load:env": "dotenv -e .env -e .env.development",
     "migrate": "npm run load:env -- npx prisma migrate dev",
     "migrate:deploy": "npm run load:env -- npx prisma migrate deploy",
     "reset:purge": "npm run load:env -- npx prisma db push --force-reset"

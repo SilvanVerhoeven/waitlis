@@ -9,8 +9,6 @@ services:
         required: true
       - path: .env.development
         required: false
-      - path: .env.production
-        required: false
     environment:
       NODE_ENV: production
     depends_on:
@@ -23,8 +21,6 @@ services:
       - path: .env
         required: true
       - path: .env.development
-        required: false
-      - path: .env.production
         required: false
     volumes:
       - db-data:/var/lib/postgresql/data

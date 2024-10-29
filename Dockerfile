@@ -17,6 +17,7 @@ RUN npm install
 COPY --chown=waitlis:waitlis . .
 
 # Build the Next.js application
+RUN npx prisma generate
 RUN npm run build
 
 # Change ownership of the /app directory to the non-root user
