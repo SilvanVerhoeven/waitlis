@@ -9,8 +9,7 @@ export async function GET() {
 
 export async function POST() {
   const latestPhase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
-  if (isErrorResponse(latestPhase)) return Response.json(latestPhase)
-  const newPhase = await prisma.phase.create({ data: { status: PhaseStatus.OPEN, previousId: latestPhase?.id } })
+  const newPhase = await prisma.phase.create({ data: { status: PhaseStatus.OPEN, previousId: !isErrorResponse(latestPhase) ? latestPhase.id : undefined } })
   revalidateTag('phases')
   return Response.json(newPhase)
 }
