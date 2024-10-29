@@ -16,7 +16,7 @@ export async function GET(_: Request, { params: { memberId } }: { params: { memb
   if (position === -1) return Response.json({ error: "No position" })
 
   return Response.json({
-    position: position + 1,
+    position,
     registration: order[position]
   })
 }

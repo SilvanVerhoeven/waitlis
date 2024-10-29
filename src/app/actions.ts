@@ -147,9 +147,8 @@ export const enqueue = async (queue: Queue) => {
       where: { id: registration.id },
       data: { status: nextStatus }
     })
+    revalidateTag('order')
   }
-
-  revalidateTag('order')
 
   return registration
 }
@@ -160,7 +159,22 @@ export const dequeue = async () => {
 
   if (!clientRegistrationId) return { error: "Registration not found" }
 
-  await prisma.registration.updateMany({
+  const orderToDequeue = await prisma.registration.findFirst({ where: { id: Number(clientRegistrationId) } })
+
+  if (!orderToDequeue) return
+
+  if (([RegistrationStatus.NEXT, RegistrationStatus.ACTIVE] as RegistrationStatus[]).includes(orderToDequeue.status)) {
+    const order: Registration[] = await (await fetch(`${process.env.SERVER_URL}/api/phase/call?respectNext=false&limit=3`, { next: { tags: ['phases', 'order'] } })).json()
+
+    if (orderToDequeue.status === RegistrationStatus.ACTIVE && order.length > 1) {
+      await prisma.registration.update({ where: { id: order[1].id }, data: { status: RegistrationStatus.ACTIVE } })
+    }
+    if (order.length > 2) {
+      await prisma.registration.update({ where: { id: order[2].id }, data: { status: RegistrationStatus.NEXT } })
+    }
+  }
+
+  await prisma.registration.update({
     where: {
       id: Number(clientRegistrationId),
       status: { notIn: closedRegistrationStatus }

@@ -6,7 +6,6 @@ import { Content } from 'antd/es/layout/layout';
 import { Phase, Registration } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { PhasePosition } from './api/member/[memberId]/route';
-import { prisma } from './lib/db';
 import { ErrorResponse, isErrorResponse } from './lib/types';
 
 export default async function MemberPage() {
@@ -14,7 +13,7 @@ export default async function MemberPage() {
   const memberId = cookieStore.get("memberId")?.value
   const registrationId = cookieStore.get("registrationId")
 
-  const queues = await prisma.queue.findMany({ include: { registrations: { include: { phase: true } } } })
+  const queues = await (await fetch(`${process.env.SERVER_URL}/api/queue/all`, { next: { tags: ['order', 'queues', 'phases'] } })).json()
   let position: PhasePosition | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/member/${memberId}`, { next: { tags: ['order', 'phases'] } })).json()
   const openPhases: Phase[] | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase`, { next: { tags: ['phases'] } })).json()
   const currentRegistration: Registration | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/registration/${registrationId?.value ?? -1}`, { next: { tags: ['registration', 'order'] } })).json()
