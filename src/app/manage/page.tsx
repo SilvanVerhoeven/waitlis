@@ -13,19 +13,14 @@ import NextPhaseButton from '@/components/NextPhaseButton';
 import { QueueWithRegistrations } from '../api/queue/route';
 import CallNextButton from '@/components/CallNextButton';
 import PollPage from '@/components/PollPage';
-import { prisma } from '../lib/db';
 import { ErrorResponse, isErrorResponse } from '../lib/types';
+
+export const dynamic = "force-dynamic"
 
 export default async function ManageView() {
   const registrations: Registration[] = await (await fetch(`${process.env.SERVER_URL}/api/phase/call`, { next: { tags: ['phases', 'order'] } })).json()
   const phase: Phase | ErrorResponse = await (await fetch(`${process.env.SERVER_URL}/api/phase/latest`, { next: { tags: ['phases'] } })).json()
-  const queues: QueueWithRegistrations[] = (await prisma.queue.findMany())
-    .map(queue => {
-      return {
-        ...queue,
-        registrations: registrations.filter(registration => registration.queueId === queue.id)
-      }
-    })
+  const queues: QueueWithRegistrations[] = await (await fetch(`${process.env.SERVER_URL}/api/queue/all`, { next: { tags: ['queues', 'phases', 'order'] } })).json()
 
   return (
     <Layout style={{ padding: 0, height: "100vh" }}>
