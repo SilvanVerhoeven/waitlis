@@ -5,9 +5,12 @@ services:
     ports:
       - 127.0.0.1:${SERVER_PORT}:3000 # Host machine port defined in .env file
     env_file:
-      - .env
-      - .env.development
-      - .env.production
+      - path: .env
+        required: true
+      - path: .env.development
+        required: false
+      - path: .env.production
+        required: false
     environment:
       NODE_ENV: production
     depends_on:
@@ -17,9 +20,12 @@ services:
   db:
     image: postgres:latest
     env_file:
-      - .env
-      - .env.development
-      - .env.production
+      - path: .env
+        required: true
+      - path: .env.development
+        required: false
+      - path: .env.production
+        required: false
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
