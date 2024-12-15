@@ -2,6 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Legal Stuff
+
+Copy the files `public/content/templates_[identifier].html` to `public/content/[identifier].html` and replace their `<code>...</code>` placeholders with your values.
+
+### Run development server
+
 First, run the development server:
 
 ```bash

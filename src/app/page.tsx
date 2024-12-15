@@ -7,6 +7,7 @@ import { Phase, Registration } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { PhasePosition } from './api/member/[memberId]/route';
 import { ErrorResponse, isErrorResponse } from './lib/types';
+import Link from 'next/link';
 
 export default async function MemberPage() {
   const cookieStore = await cookies()
@@ -23,8 +24,8 @@ export default async function MemberPage() {
   }
 
   return (
-    <Layout style={{ padding: 0, height: "100vh" }}>
-      <Content style={{ margin: '24px 16px 0', display: "flex", justifyContent: "center", alignItems: "center" }}>
+    <Layout style={{ padding: 0, height: "100vh", overflow: "hidden" }}>
+      <Content style={{ padding: 0, margin: 0, display: "flex", justifyContent: "center", alignItems: "center" }}>
         <PollPage interval={Number(process.env.POLLING_INTERVAL_APP)} />
         {isErrorResponse(position) ?
           <Row justify="center">
@@ -39,6 +40,19 @@ export default async function MemberPage() {
             </Col>
           </Row>
         }
+      </Content>
+      <Content style={{ flex: "0 0 3rem" }} >
+        <Row justify="center" align="middle" gutter={10}>
+          <Col>
+            <Link href="/impressum">Impressum</Link>
+          </Col>
+          <Col>
+            &bull;
+          </Col>
+          <Col>
+            <Link href="/datenschutz">Datenschutz</Link>
+          </Col>
+        </Row>
       </Content>
     </Layout>
   );
