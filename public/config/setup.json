@@ -1,0 +1,44 @@
+{
+  "template": "default",
+  "participation": "online",
+  "displayed_queues": [
+    {
+      "name": "FLINTA*",
+      "tags": ["flinta"]
+    },
+    {
+      "name": "Sonstige",
+      "tags": ["sonstige"]
+    }
+  ],
+  "strategy": {
+    "queues": [
+      {
+        "id": "flinta",
+        "required_tags": ["flinta"],
+        "groups": [
+          {
+            "id": "flinta_first",
+            "forbidden_tags": ["has_spoken"]
+          },
+          {
+            "id": "flinta_repeated"
+          }
+        ]
+      },
+      {
+        "id": "sonstige",
+        "required_tags": ["sonstige"],
+        "groups": [
+          {
+            "id": "sonstige_first",
+            "forbidden_tags": ["has_spoken"]
+          },
+          {
+            "id": "sonstige_repeated"
+          }
+        ]
+      }
+    ]
+  }
+}
