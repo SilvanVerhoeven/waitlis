@@ -2,30 +2,32 @@ import prisma from '~/lib/prisma'
 
 const sendLoginError = () => {
   return createError({
-    statusCode: 400,
-    statusMessage: 'Username or password are wrong',
+    statusCode: 401,
+    statusMessage: 'Nutzername oder Passwort falsch',
   })
 }
 
 export default defineEventHandler(async (event) => {
   await clearUserSession(event)
   const body = await readBody(event)
-  const { name, password } = body
+  const { username, password } = body
 
-  const user = await prisma.user.findFirst(name)
+  const user = await prisma.user.findFirst({ where: { name: username ?? null } })
 
   if (!user) return sendLoginError()
 
-  const isPasswordValid = verifyPassword(user.password, password)
+  const isPasswordValid = await verifyPassword(user.password, password)
 
   if (!isPasswordValid) return sendLoginError()
 
+  const sessionUser: SessionUser = {
+    id: user.id,
+    role: user.role,
+  }
+
   await setUserSession(event, {
-    user: {
-      id: user.id,
-      role: user.role,
-    },
+    user: sessionUser,
   })
 
-  return sendRedirect(event, '/manage')
+  return sessionUser
 })

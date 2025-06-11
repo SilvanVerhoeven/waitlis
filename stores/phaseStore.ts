@@ -16,7 +16,7 @@ export const usePhaseStore = defineStore('phases', {
 
     current(state) {
       const currentPhase = state.phases.find(phase => phase.isCurrent)
-      if (!currentPhase) throw new Error('Invalid store state: No current phase')
+      if (!currentPhase) throw silent(new Error('Invalid store state: No current phase'))
       return currentPhase
     },
   },
@@ -27,14 +27,9 @@ export const usePhaseStore = defineStore('phases', {
     },
 
     async refresh() {
-      try {
-        const rawPhases = await $fetch('/api/phase')
-        const phases = ZPhase.array().parse(rawPhases)
-        this.phases = phases
-      }
-      catch (e) {
-        console.error(e)
-      }
+      const rawPhases = await $fetch('/api/phase')
+      const phases = ZPhase.array().parse(rawPhases)
+      this.phases = phases
     },
 
     async createPhase({ name, previousId, isCurrent: setAsCurrentPhase = true, status = 'CLOSED' }: CreatePhaseParams) {
@@ -66,15 +61,17 @@ export const usePhaseStore = defineStore('phases', {
         }
       }
       catch (e) {
-        console.error(e)
         const deleteIndex = this.phases.findIndex(p => p.id === eagerPhase.id && p.createdAt === eagerPhase.createdAt)
         this.phases.splice(deleteIndex, 1)
+        throw e
       }
     },
 
     async setAsCurrent(phase: Phase) {
       this.current.isCurrent = false
       await this._updatePhase({ ...phase }, { ...phase, isCurrent: true })
+      // Make sure to get into a valid state again - if it causes issues down the line, debouncing database operations might be a good idea
+      this.phases.filter(p => p.isCurrent && p.id !== phase.id).map(p => p.isCurrent = false)
     },
 
     async previousPhase() {
@@ -114,13 +111,13 @@ export const usePhaseStore = defineStore('phases', {
         const rawUpdatedPhase = await $fetch(`/api/phase/${oldPhase.id}`, { method: 'POST', body: newPhase })
         const updatedPhase = ZPhase.parse(rawUpdatedPhase)
         const phaseIndex = this.phases.findIndex(p => p.id === updatedPhase.id)
-        if (phaseIndex < 0) throw new Error('Invalid phase ID after update')
+        if (phaseIndex < 0) throw silent(new Error('Invalid phase ID after update'))
         this.phases[phaseIndex] = updatedPhase
       }
       catch (e) {
-        console.error(e)
         const queueIndex = this.phases.findIndex(p => p.id === oldPhase.id)
         this.phases[queueIndex] = oldPhase
+        throw e
       }
     },
 
@@ -134,8 +131,12 @@ export const usePhaseStore = defineStore('phases', {
 
     async toggleCurrentPhaseStatus() {
       this.isTogglingStatus = true
-      await this.setPhaseStatus(this.current, this.current.status === 'OPEN' ? 'CLOSED' : 'OPEN')
-      this.isTogglingStatus = false
+      try {
+        await this.setPhaseStatus(this.current, this.current.status === 'OPEN' ? 'CLOSED' : 'OPEN')
+      }
+      finally {
+        this.isTogglingStatus = false
+      }
     },
 
     // /**

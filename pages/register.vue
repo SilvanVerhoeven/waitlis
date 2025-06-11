@@ -3,6 +3,7 @@ import type { FormProps } from 'ant-design-vue'
 
 definePageMeta({
   isPublic: true,
+  layout: 'default',
 })
 
 const registerState = reactive<RegistrationInput>({
@@ -12,11 +13,12 @@ const registerState = reactive<RegistrationInput>({
 })
 
 const handleFinish: FormProps['onFinish'] = async () => {
-  await $fetch('/api/auth/register', {
+  const rawUser = await $fetch('/api/auth/register', {
     method: 'POST',
     body: registerState,
   })
-  navigateTo('/manage')
+  const user = ZSessionUser.parse(rawUser)
+  navigateTo(getEntryPoint(user))
 }
 
 const handleFinishFailed: FormProps['onFinishFailed'] = (errors) => {

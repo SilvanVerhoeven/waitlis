@@ -1,4 +1,4 @@
-import type { Phase as DbPhase, Queue as DbQueue, Registration as DbRegistration } from '@prisma/client'
+import type { Phase as DbPhase, Queue as DbQueue, Registration as DbRegistration, Role as DbRole } from '@prisma/client'
 
 export {}
 
@@ -14,7 +14,13 @@ declare global{
     password: string
   }
 
+  interface SessionUser {
+    id: string
+    role: Role
+  }
+
   type Queue = DbQueue
   type Registration = DbRegistration
   type Phase = DbPhase
+  type Role = DbRole
 };

@@ -1,10 +1,13 @@
 import type { z } from 'zod/v4'
 import prisma from '~/lib/prisma'
+import authorize from '~/server/utils/auth'
 
 export const ZUpdateQueueParams = ZQueue.omit({ id: true, createdAt: true })
 export type UpdateQueueParams = z.infer<typeof ZUpdateQueueParams>
 
 export default defineEventHandler(async (event) => {
+  await authorize(event, Role.MANAGER)
+
   const parsedQueueId = ZQueueId.safeParse(getRouterParam(event, 'id'))
   if (parsedQueueId.error) throw parsedQueueId.error
 

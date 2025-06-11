@@ -34,7 +34,6 @@ export default defineNuxtConfig({
     '@ant-design-vue/nuxt',
     '@prisma/nuxt',
     'nuxt-auth-utils',
-    'nuxt-authorization',
     '@pinia/nuxt',
   ],
   antd: {

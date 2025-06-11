@@ -1,14 +1,7 @@
 <script lang="ts" setup>
-const handleMessage = () => {
-  message.info('This is a normal message')
-}
+definePageMeta({
+  layout: 'default',
+})
+await $fetch('/api/auth/logout')
+navigateTo('/')
 </script>
-
-<template>
-  <a-button primary @click="handleMessage">
-    Show Message
-  </a-button>
-  <a-button href="/api/auth/logout">
-    Logout
-  </a-button>
-</template>

@@ -1,8 +1,10 @@
 <script lang="ts" setup>
+import type { NuxtError } from '#app'
 import type { FormProps } from 'ant-design-vue'
 
 definePageMeta({
   isPublic: true,
+  layout: 'default',
 })
 
 const loginState = reactive<LoginInput>({
@@ -10,12 +12,24 @@ const loginState = reactive<LoginInput>({
   password: '',
 })
 
+const isLoading = ref(false)
+
 const handleFinish: FormProps['onFinish'] = async () => {
-  await $fetch('/api/auth/login', {
-    method: 'POST',
-    body: loginState,
-  })
-  navigateTo('/manage')
+  isLoading.value = true
+
+  try {
+    const rawUser = await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: loginState,
+    })
+    const user = ZSessionUser.parse(rawUser)
+    navigateTo(getEntryPoint(user))
+  }
+  catch (error) {
+    isLoading.value = false
+    if ((error as NuxtError).statusCode !== 401) throw error
+    message.error('Nutzername oder Passwort falsch')
+  }
 }
 
 const handleFinishFailed: FormProps['onFinishFailed'] = (errors) => {
@@ -31,7 +45,7 @@ const handleFinishFailed: FormProps['onFinishFailed'] = (errors) => {
     @finish-failed="handleFinishFailed"
   >
     <a-form-item>
-      <a-input v-model:value="loginState.username" placeholder="Username">
+      <a-input v-model:value="loginState.username" placeholder="Username" autofocus>
         <template #prefix>
           <UserOutlined style="color: rgba(0, 0, 0, 0.25)" />
         </template>
@@ -48,6 +62,7 @@ const handleFinishFailed: FormProps['onFinishFailed'] = (errors) => {
       <a-button
         type="primary"
         html-type="submit"
+        :loading="isLoading"
         :disabled="loginState.username === '' || loginState.password === ''"
         block
       >

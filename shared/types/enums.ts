@@ -1,1 +1,1 @@
-export { PhaseStatus, RegistrationStatus } from '@prisma/client'
+export { PhaseStatus, RegistrationStatus, Role } from '@prisma/client'

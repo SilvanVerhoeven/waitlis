@@ -9,14 +9,9 @@ export const useQueueStore = defineStore('queues', {
     },
 
     async refresh() {
-      try {
-        const rawQueues = await $fetch('/api/queue')
-        const queues = ZQueue.array().parse(rawQueues)
-        this.queues = queues
-      }
-      catch (e) {
-        console.error(e)
-      }
+      const rawQueues = await $fetch('/api/queue')
+      const queues = ZQueue.array().parse(rawQueues)
+      this.queues = queues
     },
 
     async callNext() {
@@ -37,9 +32,9 @@ export const useQueueStore = defineStore('queues', {
         if (newQueue.name !== replaceQueue.name) this.renameQueue(newQueue, replaceQueue.name)
       }
       catch (e) {
-        console.error(e)
         const deleteIndex = this.queues.findIndex(q => q.id === eagerQueue.id && q.createdAt === eagerQueue.createdAt)
         this.queues.splice(deleteIndex, 1)
+        throw (e)
       }
     },
 
@@ -51,8 +46,8 @@ export const useQueueStore = defineStore('queues', {
         await $fetch(`/api/queue/${queue.id}`, { method: 'DELETE' })
       }
       catch (e) {
-        console.error(e)
         this.queues.push(queue)
+        throw e
       }
     },
 
@@ -73,9 +68,9 @@ export const useQueueStore = defineStore('queues', {
         this.queues[queueIndex] = updatedQueue
       }
       catch (e) {
-        console.error(e)
         const queueIndex = this.queues.findIndex(q => q.id === oldQueue.id)
         this.queues[queueIndex] = oldQueue
+        throw e
       }
     },
 

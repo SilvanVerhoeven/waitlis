@@ -11,6 +11,11 @@ export const ZLoginInput = z.object({
   password: z.string(),
 })
 
+export const ZSessionUser = z.object({
+  id: z.string(),
+  role: z.enum(Object.values(Role)),
+})
+
 export const ZQueueId = z.coerce.number()
 
 export const ZQueue = z.object({

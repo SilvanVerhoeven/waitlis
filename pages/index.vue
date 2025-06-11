@@ -1,6 +1,10 @@
 <script lang="ts" setup>
+definePageMeta({
+  layout: 'default',
+})
+
 const queueStore = useQueueStore()
-const { data: openPhases } = await useFetch('/api/phase')
+const phaseStore = usePhaseStore()
 </script>
 
 <template>
@@ -10,7 +14,7 @@ const { data: openPhases } = await useFetch('/api/phase')
       <!-- {isErrorResponse(position) ? -->
       <a-row justify="center">
         <a-col>
-          <QueueSelector :queues="queueStore.queues" :open="(openPhases ?? []).length > 0" />
+          <QueueSelector :queues="queueStore.queues" :open="phaseStore.current.status === 'OPEN'" />
         </a-col>
       </a-row>
       <!-- : -->
