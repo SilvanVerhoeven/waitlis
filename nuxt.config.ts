@@ -10,17 +10,6 @@ export default defineNuxtConfig({
       },
     },
   },
-  app: {
-    head: {
-      title: 'Waitlis',
-      meta: [
-        { name: 'description', content: 'Manage speaker lists live' },
-      ],
-      htmlAttrs: {
-        lang: 'en',
-      },
-    },
-  },
   future: {
     compatibilityVersion: 4,
   },
@@ -41,5 +30,16 @@ export default defineNuxtConfig({
   },
   prisma: {
     generateClient: false,
+  },
+  app: {
+    head: {
+      title: 'Waitlis',
+      meta: [
+        { name: 'description', content: 'Manage speaker lists live' },
+      ],
+      htmlAttrs: {
+        lang: 'en',
+      },
+    },
   },
 })

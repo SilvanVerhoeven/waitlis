@@ -16,5 +16,6 @@ export default defineEventHandler(async (event) => {
     ...parsedQueue.data,
     name: parsedQueue.data.name ?? undefined,
   } })
-  return newQueue
+
+  getSSEStore('manage').notify('CreateQueue', newQueue)
 })

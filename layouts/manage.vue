@@ -4,6 +4,10 @@ const phaseStore = usePhaseStore()
 const { error: errorQueue } = await useAsyncData('queueStore-init', () => queueStore.initialize())
 const { error: errorPhase } = await useAsyncData('phaseStore-init', () => phaseStore.initialize())
 
+onUnmounted(() => {
+  queueStore.teardown()
+})
+
 const error = errorQueue.value || errorPhase.value
 
 if (error) {

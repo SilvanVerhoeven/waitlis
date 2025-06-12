@@ -14,8 +14,10 @@ export default defineEventHandler(async (event) => {
   const parsedQueue = await readValidatedBody(event, ZUpdateQueueParams.safeParse)
   if (parsedQueue.error) throw parsedQueue.error
 
-  return await prisma.queue.update({ where: { id: parsedQueueId.data }, data: {
+  const updatedQueue = await prisma.queue.update({ where: { id: parsedQueueId.data }, data: {
     ...parsedQueue.data,
     name: parsedQueue.data.name ?? undefined,
   } })
+
+  getSSEStore('manage').notify('UpdateQueue', updatedQueue)
 })

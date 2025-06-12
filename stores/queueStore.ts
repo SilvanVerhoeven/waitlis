@@ -1,17 +1,73 @@
+import type { ManageSSEStoreEvents } from '~/shared/types/sse'
 import { defineStore } from 'pinia'
 
 export const useQueueStore = defineStore('queues', {
-  state: () => ({ queues: [] as Queue[] }),
+  state: () => ({
+    queues: [] as Queue[],
+    _sse: undefined as EventSource | undefined,
+  }),
 
   actions: {
+    _updateQueue(queue: Queue) {
+      const index = this.queues.findIndex(q => q.id === queue.id)
+      if (index < 0) return
+      this.queues[index] = queue
+    },
+
     async initialize() {
       await this.refresh()
+
+      if (import.meta.client || this._sse) {
+        this._sse = new EventSource('/api/sse/manage')
+
+        onEvent<ManageSSEStoreEvents>(this._sse, 'UpdateQueue', (data) => {
+          try {
+            this._updateQueue(ZQueue.parse(data))
+          }
+          catch (e) {
+            throw silent(e as Error)
+          }
+        })
+
+        onEvent<ManageSSEStoreEvents>(this._sse, 'CreateQueue', (data) => {
+          try {
+            const newQueue = ZQueue.parse(data)
+            const replaceIndex = this.queues.findIndex(q => q.id === -1)
+            if (replaceIndex < 0) {
+              this.queues.push(newQueue)
+              return
+            }
+            const mergedQueue: Queue = {
+              ...newQueue,
+              name: this.queues[replaceIndex]?.name ?? newQueue.name,
+            }
+            this.queues[replaceIndex] = mergedQueue
+          }
+          catch (e) {
+            throw silent(e as Error)
+          }
+        })
+
+        onEvent<ManageSSEStoreEvents>(this._sse, 'DeleteQueue', (data) => {
+          try {
+            const deleteQueue = ZQueue.parse(data)
+            this.queues = this.queues.filter(q => q.id !== deleteQueue.id)
+          }
+          catch (e) {
+            throw silent(e as Error)
+          }
+        })
+      }
     },
 
     async refresh() {
       const rawQueues = await $fetch('/api/queue')
       const queues = ZQueue.array().parse(rawQueues)
       this.queues = queues
+    },
+
+    teardown() {
+      this._sse?.close()
     },
 
     async callNext() {
@@ -23,13 +79,7 @@ export const useQueueStore = defineStore('queues', {
       this.queues.push(eagerQueue)
 
       try {
-        const rawNewQueue = await $fetch('/api/queue', { method: 'POST', body: { name: name ?? null } })
-        const newQueue = ZQueue.parse(rawNewQueue)
-        const replaceIndex = this.queues.findIndex(q => q.id === eagerQueue.id && q.createdAt === eagerQueue.createdAt)
-        const replaceQueue = this.queues[replaceIndex]
-        if (!replaceQueue) throw new Error('Expected queue replacement not found')
-        this.queues.splice(replaceIndex, 1, newQueue)
-        if (newQueue.name !== replaceQueue.name) this.renameQueue(newQueue, replaceQueue.name)
+        await $fetch('/api/queue', { method: 'POST', body: { name: name ?? null } })
       }
       catch (e) {
         const deleteIndex = this.queues.findIndex(q => q.id === eagerQueue.id && q.createdAt === eagerQueue.createdAt)
@@ -61,11 +111,7 @@ export const useQueueStore = defineStore('queues', {
       if (newQueue.id === -1) return // skip DB update for eager queues
 
       try {
-        const rawUpdatedQueue = await $fetch(`/api/queue/${queue.id}`, { method: 'POST', body: newQueue })
-        const updatedQueue = ZQueue.parse(rawUpdatedQueue)
-        const queueIndex = this.queues.findIndex(q => q.id === updatedQueue.id)
-        if (queueIndex < 0) throw new Error('Invalid queue ID after update')
-        this.queues[queueIndex] = updatedQueue
+        await $fetch(`/api/queue/${queue.id}`, { method: 'POST', body: newQueue })
       }
       catch (e) {
         const queueIndex = this.queues.findIndex(q => q.id === oldQueue.id)
