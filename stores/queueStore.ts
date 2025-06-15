@@ -27,7 +27,7 @@ export const useQueueStore = defineStore('queues', {
         }
       })
 
-      sseStore.register('CreateQueue', (data) => {
+      sseStore.register('CreateQueue', async (data) => {
         try {
           const { eagerId, queue: newQueue } = ZCreatedQueue.parse(data)
           const replaceIndex = this.queues.findIndex(q => q.id === eagerId)
@@ -40,6 +40,7 @@ export const useQueueStore = defineStore('queues', {
             name: this.queues[replaceIndex]?.name ?? newQueue.name,
           }
           this.queues[replaceIndex] = mergedQueue
+          await this.renameQueue(mergedQueue, mergedQueue.name)
         }
         catch (e) {
           throw silent(e as Error)
@@ -79,14 +80,14 @@ export const useQueueStore = defineStore('queues', {
         await $fetch('/api/queue', { method: 'POST', body: eagerQueue })
       }
       catch (e) {
-        const deleteIndex = this.queues.findIndex(q => q.id === eagerQueue.id && q.createdAt === eagerQueue.createdAt)
+        const deleteIndex = this.queues.findIndex(q => q.id === eagerQueue.id)
         this.queues.splice(deleteIndex, 1)
         throw (e)
       }
     },
 
     async deleteQueue(queue: Queue) {
-      const eagerIndex = this.queues.findIndex(q => q.id === queue.id && q.createdAt === queue.createdAt)
+      const eagerIndex = this.queues.findIndex(q => q.id === queue.id)
       this.queues.splice(eagerIndex, 1)
 
       try {
@@ -102,16 +103,16 @@ export const useQueueStore = defineStore('queues', {
       const oldQueue = { ...queue }
       const newQueue = { ...queue, name: newName }
 
-      const eagerQueueIndex = this.queues.findIndex(q => q.id === queue.id)
+      const eagerQueueIndex = this.queues.findIndex(q => q.id === newQueue.id)
       if (eagerQueueIndex >= 0) this.queues[eagerQueueIndex] = newQueue
 
-      if (newQueue.id === -1) return // skip DB update for eager queues
+      if (isEagerId(newQueue.id)) return // skip DB update for eager queues
 
       try {
         await $fetch(`/api/queue/${queue.id}`, { method: 'POST', body: newQueue })
       }
       catch (e) {
-        const queueIndex = this.queues.findIndex(q => q.id === oldQueue.id)
+        const queueIndex = this.queues.findIndex(q => q.id === newQueue.id)
         this.queues[queueIndex] = oldQueue
         throw e
       }
@@ -122,7 +123,7 @@ export const useQueueStore = defineStore('queues', {
      * E.g. allows user to edit the name of an eagerly created queue before that queue has been fully created in the database.
      */
     persistNameInStore(queue: Queue, name: Queue['name']) {
-      const queueIndex = this.queues.findIndex(q => q.id === queue.id && q.createdAt === queue.createdAt)
+      const queueIndex = this.queues.findIndex(q => q.id === queue.id)
       if (!this.queues[queueIndex]) return
       this.queues[queueIndex].name = name
     },
