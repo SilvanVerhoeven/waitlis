@@ -1,21 +1,18 @@
-import type { z } from 'zod/v4'
 import prisma from '~/lib/prisma'
 import authorize from '~/server/utils/auth'
-import { ZUpdateQueueParams } from './[id].post'
-
-export const ZCreateQueueParams = ZUpdateQueueParams
-export type CreateQueueParams = z.infer<typeof ZCreateQueueParams>
 
 export default defineEventHandler(async (event) => {
   await authorize(event, Role.MANAGER)
 
-  const parsedQueue = await readValidatedBody(event, ZCreateQueueParams.safeParse)
-  if (parsedQueue.error) throw parsedQueue.error
+  const parseResult = await readValidatedBody(event, ZCreateQueueParams.safeParse)
+  if (parseResult.error) throw parseResult.error
+
+  const { id: eagerId, ...parsedQueue } = parseResult.data
 
   const newQueue = await prisma.queue.create({ data: {
-    ...parsedQueue.data,
-    name: parsedQueue.data.name ?? undefined,
+    ...parsedQueue,
+    name: parsedQueue.name ?? undefined,
   } })
 
-  getSSEStore().notify('CreateQueue', newQueue)
+  getSSEStore().notify('CreateQueue', { eagerId, queue: newQueue })
 })

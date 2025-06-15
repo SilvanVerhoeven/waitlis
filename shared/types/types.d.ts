@@ -23,4 +23,10 @@ declare global{
   type Registration = DbRegistration
   type Phase = DbPhase
   type Role = DbRole
-};
+
+  type UpdatePhaseParams = z.infer<typeof ZUpdatePhaseParams>
+  type CreatePhaseParams = z.infer<typeof ZCreatePhaseParams>
+
+  type UpdateQueueParams = z.infer<typeof ZUpdateQueueParams>
+  type CreateQueueParams = z.infer<typeof ZCreateQueueParams>
+}

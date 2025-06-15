@@ -20,9 +20,9 @@ export type RequestRole = Role | 'UNAUTHENTICATED'
 export type SSEStoreEvent = typeof adminSSEStoreEvents[number]
 
 export interface UnauthenticatedSSEStoreEventTypeMapping {
-  CurrentPhase: Phase
+  CreatePhase: { phase: Phase, eagerId: number }
   UpdateQueue: Queue
-  CreateQueue: Queue
+  CreateQueue: { queue: Queue, eagerId: number }
   DeleteQueue: Queue
   // Register further SSE events for the Unauthenticated SSE store here. Add to UnauthenticatedSSEStoreEvents array
 }

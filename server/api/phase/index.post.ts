@@ -1,10 +1,5 @@
-import type { z } from 'zod/v4'
 import prisma from '~/lib/prisma'
 import authorize from '~/server/utils/auth'
-import { ZUpdatePhaseParams } from './[id].post'
-
-export const ZCreatePhaseParams = ZUpdatePhaseParams
-export type CreatePhaseParams = z.infer<typeof ZCreatePhaseParams>
 
 export default defineEventHandler(async (event) => {
   await authorize(event, Role.MANAGER)
@@ -12,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const parseResult = await readValidatedBody(event, ZCreatePhaseParams.safeParse)
   if (parseResult.error) throw parseResult.error
 
-  const parsedPhase = parseResult.data
+  const { id: eagerId, ...parsedPhase } = parseResult.data
 
   const previousPhase = (parsedPhase.previousId === null)
     ? await prisma.phase.findFirst({ where: { next: null } })
@@ -31,6 +26,8 @@ export default defineEventHandler(async (event) => {
     name: parsedPhase.name ?? undefined,
     previousId: previousPhase?.id ?? undefined,
   } })
+
+  getSSEStore().notify('CreatePhase', { eagerId, phase: newPhase })
 
   // point next phase to inserted phase
   if (previousPhase && parsedPhase.previousId !== null) {

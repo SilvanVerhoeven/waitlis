@@ -29,8 +29,8 @@ export const useQueueStore = defineStore('queues', {
 
       sseStore.register('CreateQueue', (data) => {
         try {
-          const newQueue = ZQueue.parse(data)
-          const replaceIndex = this.queues.findIndex(q => q.id === -1)
+          const { eagerId, queue: newQueue } = ZCreatedQueue.parse(data)
+          const replaceIndex = this.queues.findIndex(q => q.id === eagerId)
           if (replaceIndex < 0) {
             this.queues.push(newQueue)
             return
@@ -72,11 +72,11 @@ export const useQueueStore = defineStore('queues', {
     },
 
     async createQueue(name?: string) {
-      const eagerQueue: Queue = { id: -1, name: name ?? null, createdAt: new Date() }
+      const eagerQueue: Queue = { id: generateEagerId(), name: name ?? null, createdAt: new Date() }
       this.queues.push(eagerQueue)
 
       try {
-        await $fetch('/api/queue', { method: 'POST', body: { name: name ?? null } })
+        await $fetch('/api/queue', { method: 'POST', body: eagerQueue })
       }
       catch (e) {
         const deleteIndex = this.queues.findIndex(q => q.id === eagerQueue.id && q.createdAt === eagerQueue.createdAt)

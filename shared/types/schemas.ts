@@ -16,6 +16,8 @@ export const ZSessionUser = z.object({
   role: z.enum(Object.values(Role)),
 })
 
+export const ZEagerId = z.number().negative()
+
 export const ZQueueId = z.coerce.number()
 
 export const ZQueue = z.object({
@@ -44,3 +46,11 @@ export const ZPhase = z.object({
   createdAt: z.coerce.date(),
   previousId: z.number().nullable(),
 })
+
+export const ZUpdatePhaseParams = ZPhase.omit({ id: true, createdAt: true })
+export const ZCreatePhaseParams = ZUpdatePhaseParams.extend({ id: ZEagerId })
+export const ZCreatedPhase = z.object({ eagerId: ZEagerId, phase: ZPhase })
+
+export const ZUpdateQueueParams = ZQueue.omit({ id: true, createdAt: true })
+export const ZCreateQueueParams = ZUpdateQueueParams.extend({ id: ZEagerId })
+export const ZCreatedQueue = z.object({ eagerId: ZEagerId, queue: ZQueue })
