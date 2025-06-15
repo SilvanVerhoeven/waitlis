@@ -19,5 +19,5 @@ export default defineEventHandler(async (event) => {
     name: parsedQueue.data.name ?? undefined,
   } })
 
-  getSSEStore('manage').notify('UpdateQueue', updatedQueue)
+  getSSEStore().notify('UpdateQueue', updatedQueue)
 })

@@ -1,18 +1,20 @@
-if (!globalThis.__sseStore__) {
-  globalThis.__sseStore__ = {}
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const initSSEStore = <T extends Record<string, any>>(id: keyof SSEStoreTypes) => {
-  globalThis.__sseStore__[id] = {
-    clients: [],
-
-    add(client) {
-      this.clients.push(client)
+const initSSEStore = () => {
+  const store: GlobalSSEStore = {
+    clients: {
+      ADMIN: [],
+      MANAGER: [],
+      USER: [],
+      UNAUTHENTICATED: [],
     },
 
-    remove(client) {
-      this.clients = this.clients.filter(c => c !== client)
+    add(client, role) {
+      this.clients[role].push(client)
+    },
+
+    remove(client, role) {
+      const _role = role ?? Object.keys(this.clients).find(r => this.clients[r as RequestRole].includes(client)) as RequestRole | undefined
+      if (!_role) return
+      this.clients[_role] = this.clients[_role].filter(c => c !== client)
     },
 
     notify(event, data) {
@@ -23,21 +25,31 @@ const initSSEStore = <T extends Record<string, any>>(id: keyof SSEStoreTypes) =>
         errors: [],
       }
 
-      this.clients.forEach((client) => {
-        try {
-          client.write(payload)
-          result.success++
-        }
-        catch (error) {
-          result.errors.push({ client, error: error as Error })
-        }
-      })
+      for (const _role in this.clients) {
+        const role = _role as Role
+
+        if (!getSSEStoreEvents(role).includes(event)) continue
+
+        this.clients[role].forEach((client) => {
+          try {
+            client.write(payload)
+            result.success++
+          }
+          catch (error) {
+            result.errors.push({ client, error: error as Error })
+          }
+        })
+      }
 
       return result
     },
   }
 
-  return globalThis.__sseStore__[id] as GlobalSSEStore<T>
+  return store
 }
 
-export const getSSEStore = <T extends keyof SSEStoreTypes>(type: T) => globalThis.__sseStore__[type] as GlobalSSEStore<SSEStoreTypes[T]> || initSSEStore<SSEStoreTypes[T]>(type)
+if (!globalThis.__sseStore__) {
+  globalThis.__sseStore__ = initSSEStore()
+}
+
+export const getSSEStore = () => globalThis.__sseStore__

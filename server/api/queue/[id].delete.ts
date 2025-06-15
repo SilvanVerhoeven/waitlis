@@ -7,5 +7,5 @@ export default defineEventHandler(async (event) => {
   const parsedQueueId = ZQueueId.safeParse(getRouterParam(event, 'id'))
   if (parsedQueueId.error) throw parsedQueueId.error
   const deleteQueue = await prisma.queue.delete({ where: { id: parsedQueueId.data } })
-  getSSEStore('manage').notify('DeleteQueue', deleteQueue)
+  getSSEStore().notify('DeleteQueue', deleteQueue)
 })

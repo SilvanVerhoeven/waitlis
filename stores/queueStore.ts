@@ -1,10 +1,9 @@
-import type { ManageSSEStoreEvents } from '~/shared/types/sse'
 import { defineStore } from 'pinia'
 
 export const useQueueStore = defineStore('queues', {
   state: () => ({
     queues: [] as Queue[],
-    _sse: undefined as EventSource | undefined,
+    _abortControllers: [] as AbortController[],
   }),
 
   actions: {
@@ -17,47 +16,45 @@ export const useQueueStore = defineStore('queues', {
     async initialize() {
       await this.refresh()
 
-      if (import.meta.client || this._sse) {
-        this._sse = new EventSource('/api/sse/manage')
+      const sseStore = useSSEStore()
 
-        onEvent<ManageSSEStoreEvents>(this._sse, 'UpdateQueue', (data) => {
-          try {
-            this._updateQueue(ZQueue.parse(data))
-          }
-          catch (e) {
-            throw silent(e as Error)
-          }
-        })
+      sseStore.register('UpdateQueue', (data) => {
+        try {
+          this._updateQueue(ZQueue.parse(data))
+        }
+        catch (e) {
+          throw silent(e as Error)
+        }
+      })
 
-        onEvent<ManageSSEStoreEvents>(this._sse, 'CreateQueue', (data) => {
-          try {
-            const newQueue = ZQueue.parse(data)
-            const replaceIndex = this.queues.findIndex(q => q.id === -1)
-            if (replaceIndex < 0) {
-              this.queues.push(newQueue)
-              return
-            }
-            const mergedQueue: Queue = {
-              ...newQueue,
-              name: this.queues[replaceIndex]?.name ?? newQueue.name,
-            }
-            this.queues[replaceIndex] = mergedQueue
+      sseStore.register('CreateQueue', (data) => {
+        try {
+          const newQueue = ZQueue.parse(data)
+          const replaceIndex = this.queues.findIndex(q => q.id === -1)
+          if (replaceIndex < 0) {
+            this.queues.push(newQueue)
+            return
           }
-          catch (e) {
-            throw silent(e as Error)
+          const mergedQueue: Queue = {
+            ...newQueue,
+            name: this.queues[replaceIndex]?.name ?? newQueue.name,
           }
-        })
+          this.queues[replaceIndex] = mergedQueue
+        }
+        catch (e) {
+          throw silent(e as Error)
+        }
+      })
 
-        onEvent<ManageSSEStoreEvents>(this._sse, 'DeleteQueue', (data) => {
-          try {
-            const deleteQueue = ZQueue.parse(data)
-            this.queues = this.queues.filter(q => q.id !== deleteQueue.id)
-          }
-          catch (e) {
-            throw silent(e as Error)
-          }
-        })
-      }
+      sseStore.register('DeleteQueue', (data) => {
+        try {
+          const deleteQueue = ZQueue.parse(data)
+          this.queues = this.queues.filter(q => q.id !== deleteQueue.id)
+        }
+        catch (e) {
+          throw silent(e as Error)
+        }
+      })
     },
 
     async refresh() {
@@ -67,7 +64,7 @@ export const useQueueStore = defineStore('queues', {
     },
 
     teardown() {
-      this._sse?.close()
+      this._abortControllers.forEach(controller => controller.abort())
     },
 
     async callNext() {

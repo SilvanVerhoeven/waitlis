@@ -1,9 +1,8 @@
-import authorize from '~/server/utils/auth'
-
 export default defineEventHandler(async (event) => {
-  await authorize(event, Role.MANAGER)
+  const session = await getUserSession(event)
+  const role: RequestRole = session.user?.role ?? 'UNAUTHENTICATED'
 
-  const store = getSSEStore('manage')
+  const store = getSSEStore()
   const client = event.node.res
 
   setResponseHeader(event, 'Content-Type', 'text/event-stream')
@@ -12,7 +11,9 @@ export default defineEventHandler(async (event) => {
 
   client.write('\n') // initial newline to establish connection
 
-  store.add(client)
+  // TODO: Remove client when his role changes
+  // Would receive updates with old role until page is reloaded/connection closed
+  store.add(client, role)
 
   const keepAlive = setInterval(() => {
     client.write(': keepalive\n\n')
@@ -20,6 +21,6 @@ export default defineEventHandler(async (event) => {
 
   event.node.req.on('close', () => {
     clearInterval(keepAlive)
-    store.remove(client)
+    store.remove(client, role)
   })
 })
