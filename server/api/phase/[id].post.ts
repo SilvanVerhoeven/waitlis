@@ -11,11 +11,16 @@ export default defineEventHandler(async (event) => {
   if (parsedPhase.error) throw parsedPhase.error
 
   // only one phase may be the current one
-  if (parsedPhase.data.isCurrent) await prisma.phase.updateMany({ where: { isCurrent: true }, data: { isCurrent: false } })
+  if (parsedPhase.data.isCurrent) {
+    const updatedPhases = await prisma.phase.updateManyAndReturn({ where: { isCurrent: true }, data: { isCurrent: false } })
+    updatedPhases.forEach(phase => getSSEStore().notify('UpdatePhase', phase))
+  }
 
-  return await prisma.phase.update({ where: { id: parsedPhaseId.data }, data: {
+  const updatedPhase = await prisma.phase.update({ where: { id: parsedPhaseId.data }, data: {
     ...parsedPhase.data,
     name: parsedPhase.data.name ?? undefined,
     previousId: parsedPhase.data.previousId ?? undefined,
   } })
+
+  getSSEStore().notify('UpdatePhase', updatedPhase)
 })

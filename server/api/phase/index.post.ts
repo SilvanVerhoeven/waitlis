@@ -19,7 +19,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // only one phase may be the current one
-  if (parsedPhase.isCurrent) await prisma.phase.updateMany({ where: { isCurrent: true }, data: { isCurrent: false } })
+  if (parsedPhase.isCurrent) {
+    const updatedPhases = await prisma.phase.updateManyAndReturn({ where: { isCurrent: true }, data: { isCurrent: false } })
+    updatedPhases.forEach(phase => getSSEStore().notify('UpdatePhase', phase))
+  }
 
   const newPhase = await prisma.phase.create({ data: {
     ...parsedPhase,
@@ -31,8 +34,7 @@ export default defineEventHandler(async (event) => {
 
   // point next phase to inserted phase
   if (previousPhase && parsedPhase.previousId !== null) {
-    await prisma.phase.update({ where: { previousId: previousPhase.id, NOT: { id: newPhase.id } }, data: { previousId: newPhase.id } })
+    const updatedPhase = await prisma.phase.update({ where: { previousId: previousPhase.id, NOT: { id: newPhase.id } }, data: { previousId: newPhase.id } })
+    getSSEStore().notify('UpdatePhase', updatedPhase)
   }
-
-  return newPhase
 })

@@ -2,7 +2,7 @@ import type { Phase as DbPhase, Queue as DbQueue, Registration as DbRegistration
 
 export {}
 
-declare global{
+declare global {
   interface RegistrationInput {
     username: string
     password: string

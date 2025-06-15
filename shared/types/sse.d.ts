@@ -21,6 +21,7 @@ export type SSEStoreEvent = typeof adminSSEStoreEvents[number]
 
 export interface UnauthenticatedSSEStoreEventTypeMapping {
   CreatePhase: { phase: Phase, eagerId: number }
+  UpdatePhase: Phase
   UpdateQueue: Queue
   CreateQueue: { queue: Queue, eagerId: number }
   DeleteQueue: Queue

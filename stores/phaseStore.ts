@@ -1,4 +1,3 @@
-import type { CreatePhaseParams } from '~/server/api/phase/index.post'
 import { defineStore } from 'pinia'
 
 export const usePhaseStore = defineStore('phases', {
@@ -24,6 +23,43 @@ export const usePhaseStore = defineStore('phases', {
   actions: {
     async initialize() {
       await this.refresh()
+
+      const sseStore = useSSEStore()
+
+      sseStore.register('CreatePhase', (data) => {
+        try {
+          const { eagerId, phase: newPhase } = ZCreatedPhase.parse(data)
+          const replaceIndex = this.phases.findIndex(p => p.id === eagerId)
+          if (replaceIndex < 0) {
+            this.phases.push(newPhase)
+            return
+          }
+          const mergedPhase: Phase = {
+            ...newPhase,
+            isCurrent: this.phases[replaceIndex]?.isCurrent ?? newPhase.isCurrent,
+            name: this.phases[replaceIndex]?.name ?? newPhase.name,
+            status: this.phases[replaceIndex]?.status ?? newPhase.status,
+            // previous ID should be updated, it is not set locally on the eager phase
+          }
+          this.phases[replaceIndex] = mergedPhase
+          this._updatePhase(newPhase, mergedPhase)
+        }
+        catch (e) {
+          throw silent(e as Error)
+        }
+      })
+
+      sseStore.register('UpdatePhase', (data) => {
+        try {
+          const phase = ZPhase.parse(data)
+          const index = this.phases.findIndex(q => q.id === phase.id)
+          if (index < 0) return
+          this.phases[index] = phase
+        }
+        catch (e) {
+          throw silent(e as Error)
+        }
+      })
     },
 
     async refresh() {
@@ -32,36 +68,16 @@ export const usePhaseStore = defineStore('phases', {
       this.phases = phases
     },
 
-    async createPhase({ name, previousId, isCurrent: setAsCurrentPhase = true, status = 'CLOSED' }: CreatePhaseParams) {
-      const eagerPhase: Phase = { id: -1, createdAt: new Date(), name, isCurrent: setAsCurrentPhase, status, previousId }
+    async createPhase({ eagerId, name, previousId, isCurrent: setAsCurrentPhase = true, status = 'CLOSED' }: CreatePhaseParams) {
+      const eagerPhase: Phase = { id: eagerId, createdAt: new Date(), name, isCurrent: setAsCurrentPhase, status, previousId }
       if (setAsCurrentPhase) this.current.isCurrent = false
       this.phases.push(eagerPhase)
 
       try {
-        const params: CreatePhaseParams = { name, isCurrent: setAsCurrentPhase, previousId, status }
-        const rawNewPhase = await $fetch('/api/phase', { method: 'POST', body: params })
-        const newPhase = ZPhase.parse(rawNewPhase)
-        const replaceIndex = this.phases.findIndex(p => p.id === eagerPhase.id && p.createdAt === eagerPhase.createdAt)
-        const replacePhase = this.phases[replaceIndex]
-        if (!replacePhase) throw new Error('Expected phase replacement not found')
-        this.phases.splice(replaceIndex, 1, newPhase)
-        let finalPhase = newPhase
-        if (
-          newPhase.name !== replacePhase.name
-          || newPhase.status !== replacePhase.status
-          || newPhase.isCurrent !== replacePhase.isCurrent
-        ) {
-          finalPhase = {
-            ...newPhase,
-            name: replacePhase.name,
-            status: replacePhase.status,
-            isCurrent: replacePhase.isCurrent,
-          }
-          await this._updatePhase(newPhase, finalPhase)
-        }
+        await $fetch('/api/phase', { method: 'POST', body: eagerPhase })
       }
       catch (e) {
-        const deleteIndex = this.phases.findIndex(p => p.id === eagerPhase.id && p.createdAt === eagerPhase.createdAt)
+        const deleteIndex = this.phases.findIndex(p => p.id === eagerPhase.id)
         this.phases.splice(deleteIndex, 1)
         throw e
       }
@@ -85,7 +101,7 @@ export const usePhaseStore = defineStore('phases', {
         await this.setAsCurrent(nextPhase)
         return
       }
-      await this.createPhase({ status: 'OPEN', isCurrent: true, name: null, previousId: null })
+      await this.createPhase({ eagerId: generateEagerId(), status: 'OPEN', isCurrent: true, name: null, previousId: null })
     },
 
     // async deleteQueue(queue: Queue) {
@@ -102,20 +118,16 @@ export const usePhaseStore = defineStore('phases', {
     // },
 
     async _updatePhase(oldPhase: Phase, newPhase: Phase) {
-      const eagerPhaseIndex = this.phases.findIndex(p => p.id === oldPhase.id)
+      const eagerPhaseIndex = this.phases.findIndex(p => p.id === newPhase.id)
       if (eagerPhaseIndex >= 0) this.phases[eagerPhaseIndex] = newPhase
 
-      if (newPhase.id === -1) return // skip DB update for eager phases
+      if (isEagerId(newPhase.id)) return // skip DB update for eager phases
 
       try {
-        const rawUpdatedPhase = await $fetch(`/api/phase/${oldPhase.id}`, { method: 'POST', body: newPhase })
-        const updatedPhase = ZPhase.parse(rawUpdatedPhase)
-        const phaseIndex = this.phases.findIndex(p => p.id === updatedPhase.id)
-        if (phaseIndex < 0) throw silent(new Error('Invalid phase ID after update'))
-        this.phases[phaseIndex] = updatedPhase
+        await $fetch(`/api/phase/${oldPhase.id}`, { method: 'POST', body: newPhase })
       }
       catch (e) {
-        const queueIndex = this.phases.findIndex(p => p.id === oldPhase.id)
+        const queueIndex = this.phases.findIndex(p => p.id === newPhase.id)
         this.phases[queueIndex] = oldPhase
         throw e
       }
