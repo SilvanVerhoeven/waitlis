@@ -3,9 +3,6 @@ definePageMeta({
   layout: 'default',
   isPublic: true,
 })
-
-const queueStore = useQueueStore()
-const phaseStore = usePhaseStore()
 </script>
 
 <template>
@@ -15,7 +12,7 @@ const phaseStore = usePhaseStore()
       <!-- {isErrorResponse(position) ? -->
       <a-row justify="center">
         <a-col>
-          <QueueSelector :queues="queueStore.queues" :open="phaseStore.current.status === 'OPEN'" />
+          <QueueSelector />
         </a-col>
       </a-row>
       <!-- : -->

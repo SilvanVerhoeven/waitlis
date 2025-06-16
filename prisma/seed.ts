@@ -1,7 +1,8 @@
 import prisma from '~/lib/prisma'
+import { SYSTEM_TAG_IDS } from '~/shared/types/enums'
 
 const SYSTEM_TAGS: Tag[] = [
-  { id: 1, name: 'Neu' },
+  { id: SYSTEM_TAG_IDS.FIRST_REGISTRATION_IN_PHASE, name: 'Neu' },
 ]
 
 const DEV_TAGS: Tag[] = [
@@ -28,18 +29,19 @@ const createSystemTags = async () => {
   SYSTEM_TAGS.forEach(async tag => await prisma.tag.upsert({ where: { id: tag.id }, create: { id: tag.id, name: tag.name }, update: {} }))
 }
 
-const createInitialQueueSetup = async () => {
+const dev_createInitialQueueSetup = async () => {
   const hasQueues = (await prisma.queue.count()) > 0
   if (hasQueues) return
   await prisma.tag.createMany({ data: DEV_TAGS })
   await prisma.queue.createMany({ data: DEV_QUEUES })
-  await prisma.queue.createMany({ data: DEV_LANES })
+  await prisma.lane.createMany({ data: DEV_LANES })
 }
 
 const main = async () => {
   await createInitialPhase()
   await createSystemTags()
-  await createInitialQueueSetup()
+
+  await dev_createInitialQueueSetup()
 }
 
 main()

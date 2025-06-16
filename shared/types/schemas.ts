@@ -31,6 +31,14 @@ export const ZTag = z.object({
   name: z.string(),
 })
 
+export const ZMember = z.object({
+  id: z.string(),
+  secret: z.string(),
+  displayName: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  lastRegistrationAt: z.coerce.date(),
+})
+
 export const ZRegistration = z.object({
   id: z.number(),
   createdAt: z.coerce.date(),
@@ -58,6 +66,10 @@ export const ZLane = z.object({
   createdAt: z.coerce.date(),
   mergeId: z.number().nullable(),
 })
+
+export const ZUpdateRegistrationParams = ZRegistration.omit({ id: true, createdAt: true, memberId: true, phaseId: true })
+export const ZCreateRegistrationParams = ZQueue.pick({ id: true })
+export const ZCreateRegistrationResult = z.object({ position: z.number(), registration: ZRegistration })
 
 export const ZUpdateLaneParams = ZLane.omit({ id: true, createdAt: true })
 export const ZCreateLaneParams = ZUpdateLaneParams

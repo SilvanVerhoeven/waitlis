@@ -56,6 +56,8 @@ model Tag {
 
 model Member {
   id                 String         @id @default(cuid())
+  secret             String
+  displayName        String?
   createdAt          DateTime       @default(now())
   lastRegistrationAt DateTime       @updatedAt
   registrations      Registration[]

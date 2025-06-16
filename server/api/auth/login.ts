@@ -1,7 +1,7 @@
 import prisma from '~/lib/prisma'
 
 const sendLoginError = () => {
-  return createError({
+  throw createError({
     statusCode: 401,
     statusMessage: 'Nutzername oder Passwort falsch',
   })

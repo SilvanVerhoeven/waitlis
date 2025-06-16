@@ -1,4 +1,4 @@
-import type { Lane as DbLane, Phase as DbPhase, Queue as DbQueue, Registration as DbRegistration, Role as DbRole, Tag as DbTag } from '@prisma/client'
+import type { Lane as DbLane, Member as DbMember, Phase as DbPhase, Queue as DbQueue, Registration as DbRegistration, Role as DbRole, Tag as DbTag, User as DbUser } from '@prisma/client'
 
 export {}
 
@@ -19,6 +19,8 @@ declare global {
     role: Role
   }
 
+  type User = DbUser
+  type Member = DbMember
   type Tag = DbTag
   type Queue = DbQueue
   type Registration = DbRegistration & { tags: Tag[] }
@@ -28,6 +30,10 @@ declare global {
 
   type UpdateLaneParams = z.infer<typeof ZUpdateLaneParams>
   type CreateLaneParams = z.infer<typeof ZCreateLaneParams>
+
+  type UpdateRegistrationParams = z.infer<typeof ZUpdateRegistrationParams>
+  type CreateRegistrationParams = z.infer<typeof ZCreateRegistrationParams>
+  type CreateRegistrationResult = z.infer<typeof ZCreateRegistrationResult>
 
   type UpdatePhaseParams = z.infer<typeof ZUpdatePhaseParams>
   type CreatePhaseParams = z.infer<typeof ZCreatePhaseParams>

@@ -34,7 +34,7 @@ const handleFinishFailed: FormProps['onFinishFailed'] = (errors) => {
     @finish-failed="handleFinishFailed"
   >
     <a-form-item>
-      <a-input v-model:value="registerState.username" placeholder="Username">
+      <a-input v-model:value="registerState.username" placeholder="Username" autofocus>
         <template #prefix>
           <UserOutlined style="color: rgba(0, 0, 0, 0.25)" />
         </template>

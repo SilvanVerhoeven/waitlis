@@ -13,6 +13,10 @@ export const usePhaseStore = defineStore('phases', {
       return this.current.previousId !== null
     },
 
+    isOpenForRegistrations(): boolean {
+      return this.current.status === 'OPEN'
+    },
+
     current(state) {
       const currentPhase = state.phases.find(phase => phase.isCurrent)
       if (!currentPhase) throw silent(new Error('Invalid store state: No current phase'))

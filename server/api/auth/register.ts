@@ -1,22 +1,25 @@
 import { entropy } from 'string-entropy'
 import prisma from '~/lib/prisma'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<SessionUser> => {
   await clearUserSession(event)
-  const body = await readBody<RegistrationInput>(event)
-  const { username, password, displayName } = body
+
+  const parsedResult = await readValidatedBody(event, ZRegistrationInput.safeParse)
+  if (parsedResult.error) throw parsedResult.error
+
+  const { username, password, displayName } = parsedResult.data
 
   const existingUser = await prisma.user.findFirst({ where: { name: username } })
 
   if (existingUser) {
-    return createError({
+    throw createError({
       statusCode: 400,
       statusMessage: 'Username already in use',
     })
   }
 
   if (entropy(password) < (parseInt(process.env.MIN_PASSWORD_ENTROPY ?? '') || 80)) {
-    return createError({
+    throw createError({
       statusCode: 400,
       statusMessage: 'Password insecure. Consider using a longer password or a mix of uppercase, lowercase, numerical and special characters',
     })
@@ -39,4 +42,8 @@ export default defineEventHandler(async (event) => {
       role: user.role,
     },
   })
+
+  // ToDo: Make Login work directl.y User is redirected to login after registration, instead of being logged in
+
+  return { id: user.id, role: user.role }
 })

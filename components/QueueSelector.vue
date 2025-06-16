@@ -1,19 +1,19 @@
 <script setup lang="ts">
-const { queues, open } = defineProps<{
-  open: boolean
-  queues: Queue[]
-}>()
+const queueStore = useQueueStore()
+const phaseStore = usePhaseStore()
 
 const isLoading = ref(false)
 const selectedQueue = ref<Queue | undefined>()
-// const router = useRouter()
 
 const handleSubmit = async () => {
   if (!selectedQueue.value) return
   isLoading.value = true
-  // await enqueue(selectedQueue)
-  // router.refresh()
-  isLoading.value = false
+  try {
+    await $fetch('/api/registration', { method: 'POST', body: selectedQueue.value })
+  }
+  finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -26,20 +26,20 @@ const handleSubmit = async () => {
         <a-col :span="24">
           <a-button
             type="primary"
-            :disabled="selectedQueue === undefined || !open"
+            :disabled="selectedQueue === undefined || !phaseStore.isOpenForRegistrations"
             block
             size="large"
             :loading="isLoading"
             @click="handleSubmit"
           >
-            {{ open ? 'Redebeitrag anmelden' : 'Redelisten sind geschlossen' }}
+            {{ phaseStore.isOpenForRegistrations ? 'Redebeitrag anmelden' : 'Redelisten sind geschlossen' }}
           </a-button>
         </a-col>
       </a-row>
     </template>
     <a-list
       style="width: 300px"
-      :data-source="queues"
+      :data-source="queueStore.queues"
     >
       <template #renderItem="{ item: queue }">
         <a-list-item
