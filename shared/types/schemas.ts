@@ -26,11 +26,16 @@ export const ZQueue = z.object({
   createdAt: z.coerce.date(),
 })
 
+export const ZTag = z.object({
+  id: z.number(),
+  name: z.string(),
+})
+
 export const ZRegistration = z.object({
   id: z.number(),
   createdAt: z.coerce.date(),
   status: z.enum(Object.values(RegistrationStatus)),
-  firstInPhase: z.boolean(),
+  tags: ZTag.array(),
   queueId: z.number(),
   phaseId: z.number(),
   memberId: z.string(),
@@ -46,6 +51,16 @@ export const ZPhase = z.object({
   createdAt: z.coerce.date(),
   previousId: z.number().nullable(),
 })
+
+export const ZLane = z.object({
+  id: z.number(),
+  condition: z.string(),
+  createdAt: z.coerce.date(),
+  mergeId: z.number().nullable(),
+})
+
+export const ZUpdateLaneParams = ZLane.omit({ id: true, createdAt: true })
+export const ZCreateLaneParams = ZUpdateLaneParams
 
 export const ZUpdatePhaseParams = ZPhase.omit({ id: true, createdAt: true })
 export const ZCreatePhaseParams = ZUpdatePhaseParams.extend({ id: ZEagerId })

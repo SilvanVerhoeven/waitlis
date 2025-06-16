@@ -48,9 +48,9 @@ enum RegistrationStatus {
 }
 
 model Tag {
-  name          String         @id
-  queues        Queue?         @relation(fields: [queueId], references: [id])
-  queueId       Int?
+  id            Int            @id @default(autoincrement())
+  name          String
+  queue         Queue[]
   registrations Registration[]
 }
 
@@ -69,18 +69,38 @@ model Queue {
   registrations Registration[]
 }
 
+model Lane {
+  id        Int       @id @default(autoincrement())
+  condition String
+  createdAt DateTime  @default(now())
+  segments  Segment[]
+  merge     Merge?    @relation(fields: [mergeId], references: [id])
+  mergeId   Int?
+}
+
+model Segment {
+  id        Int    @id @default(autoincrement())
+  condition String
+  lane      Lane   @relation(fields: [laneId], references: [id])
+  laneId    Int
+}
+
+model Merge {
+  id    Int    @id @default(autoincrement())
+  lanes Lane[]
+}
+
 model Registration {
-  id           Int                @id @default(autoincrement())
-  status       RegistrationStatus
-  firstInPhase Boolean
-  tags         Tag[]
-  member       Member             @relation(fields: [memberId], references: [id])
-  queue        Queue              @relation(fields: [queueId], references: [id])
-  phase        Phase              @relation(fields: [phaseId], references: [id])
-  createdAt    DateTime           @default(now())
-  queueId      Int
-  phaseId      Int
-  memberId     String
+  id        Int                @id @default(autoincrement())
+  status    RegistrationStatus
+  tags      Tag[]
+  member    Member             @relation(fields: [memberId], references: [id])
+  phase     Phase              @relation(fields: [phaseId], references: [id])
+  queue     Queue              @relation(fields: [queueId], references: [id])
+  createdAt DateTime           @default(now())
+  phaseId   Int
+  memberId  String
+  queueId   Int
 }
 
 model Phase {
